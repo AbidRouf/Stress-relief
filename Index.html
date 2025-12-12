@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#e0f7fa">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Stress Relief</title>
+    
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🫧</text></svg>">
+
+    <style>
+        /* --- CSS STYLES --- */
+        body {
+            margin: 0;
+            background: linear-gradient(135deg, #e0f7fa 0%, #e1bee7 100%); /* Calming Gradient */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden;
+            touch-action: manipulation; /* Improves touch response */
+        }
+
+        h1 {
+            color: #546e7a;
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+            text-align: center;
+            letter-spacing: 1px;
+            user-select: none;
+        }
+
+        p.subtitle {
+            color: #78909c;
+            font-size: 0.9rem;
+            margin-bottom: 30px;
+            opacity: 0.8;
+            text-align: center;
+        }
+
+        #wrap-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr); /* 4 bubbles across */
+            gap: 15px;
+            padding: 25px;
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(10px); /* Frosted glass effect */
+            border-radius: 25px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.05);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .bubble {
+            width: 65px;
+            height: 65px;
+            background: radial-gradient(circle at 30% 30%, #81d4fa, #29b6f6);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 
+                inset -4px -4px 8px rgba(0,0,0,0.1),
+                4px 4px 10px rgba(0,168,255,0.2);
+            transition: all 0.1s ease;
+            position: relative;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Hover effect only for desktops */
+        @media (hover: hover) {
+            .bubble:hover {
+                transform: scale(1.05);
+            }
+        }
+
+        /* The "Popped" State */
+        .bubble.popped {
+            background: #cfd8dc;
+            transform: scale(0.9);
+            box-shadow: inset 3px 3px 6px rgba(0,0,0,0.15);
+            animation: popAnim 0.2s ease-out;
+        }
+
+        @keyframes popAnim {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.85); }
+            100% { transform: scale(0.9); }
+        }
+
+        /* New Sheet Button */
+        #reset-btn {
+            margin-top: 40px;
+            padding: 15px 35px;
+            background: white;
+            color: #546e7a;
+            border: none;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        
+        #reset-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        /* Mobile Optimization */
+        @media (max-width: 400px) {
+            .bubble { width: 55px; height: 55px; }
+            #wrap-container { gap: 10px; padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Breathe & Pop</h1>
+    <p class="subtitle">Tap bubbles for relief</p>
+
+    <div id="wrap-container">
+        </div>
+
+    <button id="reset-btn" onclick="resetBubbles()">New Sheet</button>
+
+    <script>
+        /* --- JAVASCRIPT LOGIC --- */
+        
+        // 1. Audio Setup (Synthetic Sound)
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playPopSound() {
+            // Browsers block audio until the user interacts. 
+            // This line ensures audio wakes up on the first tap.
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.type = 'sine'; // Sine wave is soft and round
+            
+            // Pitch drop effect (Pewww!)
+            oscillator.frequency.setValueAtTime(600, audioCtx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.15);
+
+            // Volume fade out
+            gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.15);
+        }
+
+        // 2. Bubble Generation
+        const container = document.getElementById('wrap-container');
+        const bubbleCount = 20; // 4x5 grid
+
+        function createBubbles() {
+            container.innerHTML = '';
+            for (let i = 0; i < bubbleCount; i++) {
+                let b = document.createElement('div');
+                b.className = 'bubble';
+                // Use both click and touchstart for instant response
+                b.addEventListener('pointerdown', function(e) {
+                    e.preventDefault(); // Prevents double-firing on some devices
+                    popBubble(this);
+                });
+                container.appendChild(b);
+            }
+        }
+
+        function popBubble(element) {
+            if (element.classList.contains('popped')) return;
+            
+            // Visual
+            element.classList.add('popped');
+            
+            // Audio
+            playPopSound();
+
+            // Haptic Vibration (Android only - ignored by iPhone)
+            if (navigator.vibrate) {
+                navigator.vibrate(15); // Short, sharp tick
+            }
+        }
+
+        function resetBubbles() {
+            const bubbles = document.querySelectorAll('.bubble');
+            bubbles.forEach(b => {
+                b.classList.remove('popped');
+            });
+            // Optional: A little vibration on reset
+            if (navigator.vibrate) navigator.vibrate(30);
+        }
+
+        // Start the app
+        createBubbles();
+    </script>
+</body>
+</html>
